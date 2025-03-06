@@ -12,7 +12,9 @@ $(function() {
   source.addEventListener('input', inputHandler);
 
   $('.movie-button').on('click',function(){
-    var my_api_key = '03a3ce3e61eb9d4e8a58eeb026988398';
+    // var my_api_key = '03a3ce3e61eb9d4e8a58eeb026988398';
+    // Replace hardcoded API key with:
+    var my_api_key = process.env.TMDB_API_KEY; // For backend use
     var title = $('.movie').val();
     if (title=="") {
       $('.results').css('display','none');
