@@ -1,2 +1,6 @@
+<<<<<<< HEAD
 # Ignore Python virtual environment
 myenv/
+=======
+myenv
+>>>>>>> 425957d (updated fetching)
