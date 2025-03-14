@@ -123,7 +123,7 @@ def recommend():
 
     # Fetch reviews from TMDB API
     movie_reviews = {}
-    TMDB_API_KEY = "YOUR_TMDB_API_KEY"  # Get from https://www.themoviedb.org/settings/api
+    TMDB_API_KEY = "46bb9f01f553c4675106157025eaf420"  # Get from https://www.themoviedb.org/settings/api
     
     if rec_ids:
         try:
