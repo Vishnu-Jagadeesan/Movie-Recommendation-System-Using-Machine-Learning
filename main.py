@@ -1,13 +1,11 @@
 import numpy as np
 import pandas as pd
-from flask import Flask, render_template, request
-from sklearn.feature_extraction.text import CountVectorizer
-import json
+from flask import Flask, render_template, request, json
 import bs4 as bs
 import urllib.request
 import pickle
 import requests
-from datetime import date, datetime
+from datetime import datetime
 import warnings
 from sklearn.exceptions import InconsistentVersionWarning
 
@@ -15,10 +13,9 @@ from sklearn.exceptions import InconsistentVersionWarning
 warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# Load models
-filename = 'nlp_model.pkl'
-clf = pickle.load(open(filename, 'rb'))
-vectorizer = pickle.load(open('tranform.pkl', 'rb'))
+# Load your pre-fitted sentiment analysis pipeline
+with open('nlp_model.pkl', 'rb') as f:
+    clf = pickle.load(f)
 
 def convert_to_list(my_list):
     my_list = my_list.split('","')
@@ -65,31 +62,30 @@ def populate_matches():
 @app.route("/recommend", methods=["POST"])
 def recommend():
     # Get form data
-    form_data = request.form
-    title = form_data['title']
-    cast_ids = form_data['cast_ids']
-    cast_names = form_data['cast_names']
-    cast_chars = form_data['cast_chars']
-    cast_bdays = form_data['cast_bdays']
-    cast_bios = form_data['cast_bios']
-    cast_places = form_data['cast_places']
-    cast_profiles = form_data['cast_profiles']
-    imdb_id = form_data['imdb_id']
-    poster = form_data['poster']
-    genres = form_data['genres']
-    overview = form_data['overview']
-    vote_average = form_data['rating']
-    vote_count = form_data['vote_count']
-    rel_date = form_data['rel_date']
-    release_date = form_data['release_date']
-    runtime = form_data['runtime']
-    status = form_data['status']
-    rec_movies = form_data['rec_movies']
-    rec_posters = form_data['rec_posters']
-    rec_movies_org = form_data['rec_movies_org']
-    rec_year = form_data['rec_year']
-    rec_vote = form_data['rec_vote']
-    rec_ids = form_data['rec_ids']
+    title = request.form['title']
+    cast_ids = request.form['cast_ids']
+    cast_names = request.form['cast_names']
+    cast_chars = request.form['cast_chars']
+    cast_bdays = request.form['cast_bdays']
+    cast_bios = request.form['cast_bios']
+    cast_places = request.form['cast_places']
+    cast_profiles = request.form['cast_profiles']
+    imdb_id = request.form['imdb_id']
+    poster = request.form['poster']
+    genres = request.form['genres']
+    overview = request.form['overview']
+    vote_average = request.form['rating']
+    vote_count = request.form['vote_count']
+    rel_date = request.form['rel_date']
+    release_date = request.form['release_date']
+    runtime = request.form['runtime']
+    status = request.form['status']
+    rec_movies = request.form['rec_movies']
+    rec_posters = request.form['rec_posters']
+    rec_movies_org = request.form['rec_movies_org']
+    rec_year = request.form['rec_year']
+    rec_vote = request.form['rec_vote']
+    rec_ids = request.form['rec_ids']
 
     # Convert data to proper formats
     rec_movies_org = convert_to_list(rec_movies_org)
@@ -107,7 +103,7 @@ def recommend():
     rec_year = convert_to_list_num(rec_year)
     rec_ids = convert_to_list_num(rec_ids)
 
-    # Process bios and characters
+    # Process escape sequences in bios and characters
     for i in range(len(cast_bios)):
         cast_bios[i] = cast_bios[i].replace(r'\n', '\n').replace(r'\"', '"')
         cast_chars[i] = cast_chars[i].replace(r'\n', '\n').replace(r'\"', '"')
@@ -121,9 +117,9 @@ def recommend():
     cast_details = {cast_names[i]: [cast_ids[i], cast_profiles[i], cast_bdays[i], cast_places[i], cast_bios[i]] 
                     for i in range(len(cast_places))}
 
-    # Fetch reviews from TMDB API
+    # Fetch and analyze reviews from TMDB
     movie_reviews = {}
-    TMDB_API_KEY = "46bb9f01f553c4675106157025eaf420"  # Get from https://www.themoviedb.org/settings/api
+    TMDB_API_KEY = "46bb9f01f553c4675106157025eaf420"
     
     if rec_ids:
         try:
@@ -136,15 +132,14 @@ def recommend():
             reviews_list = []
             reviews_status = []
             
-            for review in reviews_data.get('results', [])[:10]:  # Limit to 10 reviews
+            for review in reviews_data.get('results', [])[:10]:
                 if review.get('content'):
                     review_text = review['content']
                     reviews_list.append(review_text)
                     
-                    # Predict sentiment
-                    movie_vector = vectorizer.transform([review_text])
-                    pred = clf.predict(movie_vector)
-                    reviews_status.append('Positive' if pred else 'Negative')
+                    # Fix: Pass text directly as a list
+                    pred = clf.predict([review_text])
+                    reviews_status.append('Positive' if pred[0] else 'Negative')
             
             movie_reviews = dict(zip(reviews_list, reviews_status))
             
@@ -153,14 +148,8 @@ def recommend():
             movie_reviews = {"Error": "Could not fetch reviews at this time"}
 
     # Date handling
-    movie_rel_date = None
-    curr_date = None
-    if rel_date:
-        try:
-            movie_rel_date = datetime.strptime(rel_date, '%Y-%m-%d')
-            curr_date = datetime.now()
-        except ValueError:
-            pass
+    movie_rel_date = datetime.strptime(rel_date, '%Y-%m-%d') if rel_date else None
+    curr_date = datetime.now()
 
     return render_template(
         'recommend.html',
