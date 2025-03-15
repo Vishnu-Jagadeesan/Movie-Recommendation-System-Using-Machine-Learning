@@ -13,7 +13,7 @@ nltk.download("stopwords")
 
 def load_data():
     return pd.read_csv('datasets/reviews.txt', sep='\t', names=['sentiment', 'text'])
-S
+
 def create_model_pipeline():
     return Pipeline([
         ('tfidf', TfidfVectorizer(
