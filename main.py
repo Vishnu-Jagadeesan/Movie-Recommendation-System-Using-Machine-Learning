@@ -7,16 +7,24 @@ import pickle
 import requests
 from datetime import datetime
 import warnings
+import os
 from sklearn.exceptions import InconsistentVersionWarning
+from dotenv import load_dotenv
+
+# Initialize environment variables
+load_dotenv('.env') if os.path.exists('.env') else None
 
 # Suppress warnings
 warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# Load your pre-fitted sentiment analysis pipeline
+# Load models and data
 with open('nlp_model.pkl', 'rb') as f:
     clf = pickle.load(f)
 
+TMDB_API_KEY = os.environ.get('TMDB_API_KEY')
+
+# Utility functions
 def convert_to_list(my_list):
     my_list = my_list.split('","')
     my_list[0] = my_list[0].replace('["', '')
@@ -33,13 +41,13 @@ def get_suggestions():
     data = pd.read_csv('main_data.csv')
     return list(data['movie_title'].str.capitalize())
 
+# Flask application
 app = Flask(__name__)
 
 @app.route("/")
 @app.route("/home")
 def home():
-    suggestions = get_suggestions()
-    return render_template('home.html', suggestions=suggestions)
+    return render_template('home.html', suggestions=get_suggestions())
 
 @app.route("/populate-matches", methods=["POST"])
 def populate_matches():
@@ -59,111 +67,134 @@ def populate_matches():
     
     return render_template('recommend.html', movie_cards=movie_cards)
 
+# API Proxy Endpoints
+@app.route("/api/search")
+def handle_search():
+    query = request.args.get('query')
+    url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={query}"
+    return requests.get(url).json()
+
+@app.route("/api/movie/<int:movie_id>")
+def handle_movie(movie_id):
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={TMDB_API_KEY}"
+    return requests.get(url).json()
+
+@app.route("/api/movie/<int:movie_id>/recommendations")
+def handle_recommendations(movie_id):
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}/recommendations?api_key={TMDB_API_KEY}"
+    return requests.get(url).json()
+
+@app.route("/api/movie/<int:movie_id>/credits")
+def handle_credits(movie_id):
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}/credits?api_key={TMDB_API_KEY}"
+    return requests.get(url).json()
+
+@app.route("/api/person/<int:person_id>")
+def handle_person(person_id):
+    url = f"https://api.themoviedb.org/3/person/{person_id}?api_key={TMDB_API_KEY}"
+    return requests.get(url).json()
+
+# Main recommendation endpoint
 @app.route("/recommend", methods=["POST"])
 def recommend():
-    # Get form data
-    title = request.form['title']
-    cast_ids = request.form['cast_ids']
-    cast_names = request.form['cast_names']
-    cast_chars = request.form['cast_chars']
-    cast_bdays = request.form['cast_bdays']
-    cast_bios = request.form['cast_bios']
-    cast_places = request.form['cast_places']
-    cast_profiles = request.form['cast_profiles']
-    imdb_id = request.form['imdb_id']
-    poster = request.form['poster']
-    genres = request.form['genres']
-    overview = request.form['overview']
-    vote_average = request.form['rating']
-    vote_count = request.form['vote_count']
-    rel_date = request.form['rel_date']
-    release_date = request.form['release_date']
-    runtime = request.form['runtime']
-    status = request.form['status']
-    rec_movies = request.form['rec_movies']
-    rec_posters = request.form['rec_posters']
-    rec_movies_org = request.form['rec_movies_org']
-    rec_year = request.form['rec_year']
-    rec_vote = request.form['rec_vote']
-    rec_ids = request.form['rec_ids']
+    # Extract form data
+    form_fields = [
+        'title', 'cast_ids', 'cast_names', 'cast_chars', 'cast_bdays',
+        'cast_bios', 'cast_places', 'cast_profiles', 'imdb_id', 'poster',
+        'genres', 'overview', 'rating', 'vote_count', 'rel_date',
+        'release_date', 'runtime', 'status', 'rec_movies', 'rec_posters',
+        'rec_movies_org', 'rec_year', 'rec_vote', 'rec_ids'
+    ]
+    form_data = {field: request.form[field] for field in form_fields}
 
-    # Convert data to proper formats
-    rec_movies_org = convert_to_list(rec_movies_org)
-    rec_movies = convert_to_list(rec_movies)
-    rec_posters = convert_to_list(rec_posters)
-    cast_names = convert_to_list(cast_names)
-    cast_chars = convert_to_list(cast_chars)
-    cast_profiles = convert_to_list(cast_profiles)
-    cast_bdays = convert_to_list(cast_bdays)
-    cast_bios = convert_to_list(cast_bios)
-    cast_places = convert_to_list(cast_places)
-    
-    cast_ids = convert_to_list_num(cast_ids)
-    rec_vote = convert_to_list_num(rec_vote)
-    rec_year = convert_to_list_num(rec_year)
-    rec_ids = convert_to_list_num(rec_ids)
+    # Convert string data to proper formats
+    conversions = {
+        'rec_movies_org': convert_to_list,
+        'rec_movies': convert_to_list,
+        'rec_posters': convert_to_list,
+        'cast_names': convert_to_list,
+        'cast_chars': convert_to_list,
+        'cast_profiles': convert_to_list,
+        'cast_bdays': convert_to_list,
+        'cast_bios': convert_to_list,
+        'cast_places': convert_to_list,
+        'cast_ids': convert_to_list_num,
+        'rec_vote': convert_to_list_num,
+        'rec_year': convert_to_list_num,
+        'rec_ids': convert_to_list_num
+    }
 
-    # Process escape sequences in bios and characters
-    for i in range(len(cast_bios)):
-        cast_bios[i] = cast_bios[i].replace(r'\n', '\n').replace(r'\"', '"')
-        cast_chars[i] = cast_chars[i].replace(r'\n', '\n').replace(r'\"', '"')
+    for key, func in conversions.items():
+        form_data[key] = func(form_data[key])
 
-    movie_cards = {rec_posters[i]: [rec_movies[i], rec_movies_org[i], rec_vote[i], rec_year[i], rec_ids[i]] 
-                   for i in range(len(rec_posters))}
+    # Process escape sequences
+    for i in range(len(form_data['cast_bios'])):
+        form_data['cast_bios'][i] = form_data['cast_bios'][i].replace(r'\n', '\n').replace(r'\"', '"')
+        form_data['cast_chars'][i] = form_data['cast_chars'][i].replace(r'\n', '\n').replace(r'\"', '"')
 
-    casts = {cast_names[i]: [cast_ids[i], cast_chars[i], cast_profiles[i]] 
-             for i in range(len(cast_profiles))}
+    # Prepare data for template
+    movie_cards = {form_data['rec_posters'][i]: [
+        form_data['rec_movies'][i],
+        form_data['rec_movies_org'][i],
+        form_data['rec_vote'][i],
+        form_data['rec_year'][i],
+        form_data['rec_ids'][i]
+    ] for i in range(len(form_data['rec_posters']))}
 
-    cast_details = {cast_names[i]: [cast_ids[i], cast_profiles[i], cast_bdays[i], cast_places[i], cast_bios[i]] 
-                    for i in range(len(cast_places))}
+    casts = {form_data['cast_names'][i]: [
+        form_data['cast_ids'][i],
+        form_data['cast_chars'][i],
+        form_data['cast_profiles'][i]
+    ] for i in range(len(form_data['cast_profiles']))}
 
-    # Fetch and analyze reviews from TMDB
+    cast_details = {form_data['cast_names'][i]: [
+        form_data['cast_ids'][i],
+        form_data['cast_profiles'][i],
+        form_data['cast_bdays'][i],
+        form_data['cast_places'][i],
+        form_data['cast_bios'][i]
+    ] for i in range(len(form_data['cast_places']))}
+
+    # Handle reviews
     movie_reviews = {}
-    TMDB_API_KEY = "46bb9f01f553c4675106157025eaf420"
-    
-    if rec_ids:
+    if form_data['rec_ids']:
         try:
-            movie_id = rec_ids[0]
+            movie_id = form_data['rec_ids'][0]
             url = f"https://api.themoviedb.org/3/movie/{movie_id}/reviews?api_key={TMDB_API_KEY}"
-            response = requests.get(url)
-            response.raise_for_status()
+            reviews_data = requests.get(url).json()
             
-            reviews_data = response.json()
             reviews_list = []
             reviews_status = []
-            
             for review in reviews_data.get('results', [])[:10]:
                 if review.get('content'):
                     review_text = review['content']
                     reviews_list.append(review_text)
-                    
-                    # Fix: Pass text directly as a list
                     pred = clf.predict([review_text])
                     reviews_status.append('Positive' if pred[0] else 'Negative')
             
             movie_reviews = dict(zip(reviews_list, reviews_status))
             
         except Exception as e:
-            print(f"Error fetching TMDB reviews: {str(e)}")
-            movie_reviews = {"Error": "Could not fetch reviews at this time"}
+            print(f"Error fetching reviews: {str(e)}")
+            movie_reviews = {"Error": "Could not fetch reviews"}
 
     # Date handling
-    movie_rel_date = datetime.strptime(rel_date, '%Y-%m-%d') if rel_date else None
+    movie_rel_date = datetime.strptime(form_data['rel_date'], '%Y-%m-%d') if form_data['rel_date'] else None
     curr_date = datetime.now()
 
     return render_template(
         'recommend.html',
-        title=title,
-        poster=poster,
-        overview=overview,
-        vote_average=vote_average,
-        vote_count=vote_count,
-        release_date=release_date,
+        title=form_data['title'],
+        poster=form_data['poster'],
+        overview=form_data['overview'],
+        vote_average=form_data['rating'],
+        vote_count=form_data['vote_count'],
+        release_date=form_data['release_date'],
         movie_rel_date=movie_rel_date,
         curr_date=curr_date,
-        runtime=runtime,
-        status=status,
-        genres=genres,
+        runtime=form_data['runtime'],
+        status=form_data['status'],
+        genres=form_data['genres'],
         movie_cards=movie_cards,
         reviews=movie_reviews,
         casts=casts,
@@ -171,4 +202,4 @@ def recommend():
     )
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=os.environ.get('FLASK_DEBUG', False))
