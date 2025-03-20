@@ -44,6 +44,10 @@ def get_suggestions():
 # Flask application
 app = Flask(__name__)
 
+@app.route("/health")
+def health_check():
+    return "OK", 200  
+
 @app.route("/")
 @app.route("/home")
 def home():
