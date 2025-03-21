@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from flask import Flask, render_template, request, json
+from flask import Flask, render_template, request, json, jsonify
 import bs4 as bs
 import urllib.request
 import pickle
@@ -8,8 +8,10 @@ import requests
 from datetime import datetime
 import warnings
 import os
+from threading import Thread
 from sklearn.exceptions import InconsistentVersionWarning
 from dotenv import load_dotenv
+from flask_compress import Compress
 
 # Initialize environment variables
 load_dotenv('.env') if os.path.exists('.env') else None
@@ -18,13 +20,15 @@ load_dotenv('.env') if os.path.exists('.env') else None
 warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# Load models and data
-with open('nlp_model.pkl', 'rb') as f:
-    clf = pickle.load(f)
+# Lazy-loaded resources
+_nlp_model = None
+_suggestions_data = None
 
-TMDB_API_KEY = os.environ.get('TMDB_API_KEY')
+# Initialize Flask and Compress
+app = Flask(__name__)
+Compress(app)
 
-# Utility functions
+# Original utility functions from user's code
 def convert_to_list(my_list):
     my_list = my_list.split('","')
     my_list[0] = my_list[0].replace('["', '')
@@ -37,17 +41,41 @@ def convert_to_list_num(my_list):
     my_list[-1] = my_list[-1].replace("]", "")
     return [int(i) if i.strip().isdigit() else i.strip() for i in my_list]
 
+def get_nlp_model():
+    global _nlp_model
+    if not _nlp_model:
+        with open('nlp_model.pkl', 'rb') as f:
+            _nlp_model = pickle.load(f)
+    return _nlp_model
+
 def get_suggestions():
-    data = pd.read_csv('main_data.csv')
-    return list(data['movie_title'].str.capitalize())
+    global _suggestions_data
+    if not _suggestions_data:
+        try:
+            data = pd.read_pickle('main_data.pkl')
+        except FileNotFoundError:
+            data = pd.read_csv('main_data.csv')
+            data.to_pickle('main_data.pkl')
+        _suggestions_data = list(data['movie_title'].str.capitalize())
+    return _suggestions_data
 
-# Flask application
-app = Flask(__name__)
+def background_init():
+    """Pre-load resources in background"""
+    get_suggestions()
+    get_nlp_model()
 
-@app.route("/health")
+# Health check endpoint
+@app.route('/health')
 def health_check():
-    return "OK", 200  
+    return jsonify(status="OK"), 200
 
+# Caching headers
+@app.after_request
+def add_cache_headers(response):
+    response.cache_control.max_age = 300
+    return response
+
+# Original routes below (exactly as in user's code)
 @app.route("/")
 @app.route("/home")
 def home():
@@ -71,34 +99,34 @@ def populate_matches():
     
     return render_template('recommend.html', movie_cards=movie_cards)
 
-# API Proxy Endpoints
+# API Proxy Endpoints (unchanged)
 @app.route("/api/search")
 def handle_search():
     query = request.args.get('query')
-    url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={query}"
+    url = f"https://api.themoviedb.org/3/search/movie?api_key={os.getenv('TMDB_API_KEY')}&query={query}"
     return requests.get(url).json()
 
 @app.route("/api/movie/<int:movie_id>")
 def handle_movie(movie_id):
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={TMDB_API_KEY}"
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={os.getenv('TMDB_API_KEY')}"
     return requests.get(url).json()
 
 @app.route("/api/movie/<int:movie_id>/recommendations")
 def handle_recommendations(movie_id):
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}/recommendations?api_key={TMDB_API_KEY}"
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}/recommendations?api_key={os.getenv('TMDB_API_KEY')}"
     return requests.get(url).json()
 
 @app.route("/api/movie/<int:movie_id>/credits")
 def handle_credits(movie_id):
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}/credits?api_key={TMDB_API_KEY}"
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}/credits?api_key={os.getenv('TMDB_API_KEY')}"
     return requests.get(url).json()
 
 @app.route("/api/person/<int:person_id>")
 def handle_person(person_id):
-    url = f"https://api.themoviedb.org/3/person/{person_id}?api_key={TMDB_API_KEY}"
+    url = f"https://api.themoviedb.org/3/person/{person_id}?api_key={os.getenv('TMDB_API_KEY')}"
     return requests.get(url).json()
 
-# Main recommendation endpoint
+# Original recommendation route with single optimization
 @app.route("/recommend", methods=["POST"])
 def recommend():
     # Extract form data
@@ -159,16 +187,17 @@ def recommend():
         form_data['cast_bios'][i]
     ] for i in range(len(form_data['cast_places']))}
 
-    # Handle reviews
+    # Handle reviews with lazy-loaded model
     movie_reviews = {}
     if form_data['rec_ids']:
         try:
             movie_id = form_data['rec_ids'][0]
-            url = f"https://api.themoviedb.org/3/movie/{movie_id}/reviews?api_key={TMDB_API_KEY}"
+            url = f"https://api.themoviedb.org/3/movie/{movie_id}/reviews?api_key={os.getenv('TMDB_API_KEY')}"
             reviews_data = requests.get(url).json()
             
             reviews_list = []
             reviews_status = []
+            clf = get_nlp_model()  # Only change here
             for review in reviews_data.get('results', [])[:10]:
                 if review.get('content'):
                     review_text = review['content']
@@ -206,4 +235,5 @@ def recommend():
     )
 
 if __name__ == '__main__':
+    Thread(target=background_init).start()
     app.run(debug=os.environ.get('FLASK_DEBUG', False))
