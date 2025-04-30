@@ -274,3 +274,12 @@ function showError() {
   $('.results').css('display','none');
   $("#loader").delay(500).fadeOut();
 }
+
+// Cold start loader – show on page load, hide when fully loaded
+$(document).ready(function(){
+  $('#coldstart-loader').fadeIn();
+});
+
+$(window).on('load', function(){
+  $('#coldstart-loader').fadeOut(500);
+});
