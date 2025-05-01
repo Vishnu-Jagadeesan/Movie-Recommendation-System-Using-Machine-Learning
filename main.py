@@ -13,7 +13,6 @@ from sklearn.exceptions import InconsistentVersionWarning
 from dotenv import load_dotenv
 from flask_compress import Compress
 from flask import send_from_directory
-from flask_cors import CORS
 
 # Initialize environment variables
 load_dotenv('.env') if os.path.exists('.env') else None
@@ -28,7 +27,6 @@ _suggestions_data = None
 
 # Initialize Flask and Compress
 app = Flask(__name__)
-CORS(app)
 Compress(app)
 
 # Original utility functions from user's code
