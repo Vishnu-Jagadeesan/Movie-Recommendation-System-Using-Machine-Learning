@@ -275,11 +275,11 @@ function showError() {
   $("#loader").delay(500).fadeOut();
 }
 
-// Cold start loader – show on page load, hide when fully loaded
-$(document).ready(function(){
-  $('#coldstart-loader').fadeIn();
-});
+// // Cold start loader – show on page load, hide when fully loaded
+// $(document).ready(function(){
+//   $('#coldstart-loader').fadeIn();
+// });
 
-$(window).on('load', function(){
-  $('#coldstart-loader').fadeOut(500);
-});
+// $(window).on('load', function(){
+//   $('#coldstart-loader').fadeOut(500);
+// });

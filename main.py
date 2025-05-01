@@ -12,6 +12,7 @@ from threading import Thread
 from sklearn.exceptions import InconsistentVersionWarning
 from dotenv import load_dotenv
 from flask_compress import Compress
+from flask import send_from_directory
 
 # Initialize environment variables
 load_dotenv('.env') if os.path.exists('.env') else None
@@ -63,6 +64,10 @@ def background_init():
     """Pre-load resources in background"""
     get_suggestions()
     get_nlp_model()
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),'VJ_logo_round.ico', mimetype='image/vnd.microsoft.icon')
 
 # Health check endpoint
 @app.route('/health')
