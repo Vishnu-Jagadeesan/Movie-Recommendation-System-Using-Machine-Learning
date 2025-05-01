@@ -13,6 +13,8 @@ from sklearn.exceptions import InconsistentVersionWarning
 from dotenv import load_dotenv
 from flask_compress import Compress
 from flask import send_from_directory
+from flask_cors import CORS, cross_origin
+
 
 # Initialize environment variables
 load_dotenv('.env') if os.path.exists('.env') else None
@@ -71,6 +73,7 @@ def favicon():
 
 # Health check endpoint
 @app.route('/health')
+@cross_origin()
 def health_check():
     return jsonify(status="OK"), 200
 
