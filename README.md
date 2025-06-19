@@ -8,6 +8,12 @@ This project was **originally developed as a group academic project** and later 
 
 ---
 
+## 🔗 Live Demo
+
+🌐 [Open Preloader Page]([https://vishnu-jagadeesan.github.io/Movie-Recommendation-System/](https://vishnu-jagadeesan.github.io/Movie-Recommendation-System/)
+
+---
+
 ## 📌 Project Highlights
 
 - 🔍 **Content-Based Filtering** using metadata (cast, genre, director, etc.)
