@@ -72,6 +72,25 @@ See the included [📄 PDF report](./Final%20paper%20Movie%20Recommendation%20sy
 - Includes a **loader page hosted on GitHub Pages** that redirects to Render app after ~6 seconds (cold start workaround).
 
 ---
+## 📥 Request Access
+
+This repository references private training and deployment modules.  
+To gain access:
+
+1. Visit the linked repositories.
+2. Click **"Request Access"** or open an issue in this repo.
+3. Clearly state your purpose (academic, research, etc.)
+
+🔗 [GitHub Profile – Vishnu Jagadeesan](https://github.com/Vishnu-Jagadeesan)
+
+> You can also contract me :
+
+- Sending an email to [vishnuj.cs.ug@gmail.com](mailto:vishnujagadeesan10@gmail.com)
+- Connecting on [LinkedIn](https://www.linkedin.com/in/vishnu-jagadeesan/)
+- Visiting the [Portfolio Website](https://vishnujagadeesan.com)
+
+---
+
 
 ## 📄 License & Use
 
@@ -86,13 +105,11 @@ This project is a **closed academic prototype** and not open for redistribution 
 - No redistribution of code or design
 - Not licensed for open-source contribution
 
----
+- 
+This project is licensed under the [Vishnu Jagadeesan](LICENSE).
+📄 License: Vishnu Jagadeesan| 🔒 All rights reserved
 
-## 📬 Contact
 
-For academic collaboration or demo access, contact:
-
-**Vishnu Jagadeesan**  
-📧 [vishnujagadeesan10@gmail.com](mailto:vishnujagadeesan10@gmail.com)
+> © 2025 Vishnu Jagadeesan – For academic, research, and ethical use only.
 
 ---
