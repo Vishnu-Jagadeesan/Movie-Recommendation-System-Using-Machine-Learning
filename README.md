@@ -7,6 +7,15 @@ This project was **originally developed as a group academic project** and later 
 > 📝 **Published Paper**: [Scientific.Net (2022)](https://doi.org/10.4028/p-g9ekjp)
 
 ---
+![Python](https://img.shields.io/badge/backend-python-blue?logo=python)
+![Flask](https://img.shields.io/badge/framework-flask-black?logo=flask)
+![TMDb API](https://img.shields.io/badge/API-TMDB-01B4E4?logo=themoviedatabase)
+![Sentiment](https://img.shields.io/badge/sentiment-Naive%20Bayes%20%2B%20TFIDF-yellowgreen)
+![Deployment](https://img.shields.io/badge/deployed%20on-render-blueviolet?logo=render)
+![License](https://img.shields.io/badge/license-%C2%A9%20Vishnu%20Jagadeesan-blue)
+![Status](https://img.shields.io/badge/status-production--ready-brightgreen)
+
+---
 
 ## 🔗 Live Demo
 
