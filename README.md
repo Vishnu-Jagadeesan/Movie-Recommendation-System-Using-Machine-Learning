@@ -8,7 +8,7 @@ This project was **originally developed as a group academic project** and later 
 
 ---
 ![Python](https://img.shields.io/badge/backend-python-blue?logo=python)
-![Flask](https://img.shields.io/badge/framework-flask-black?logo=flask)
+![Flask](https://img.shields.io/badge/framework-flask-green?logo=flask)
 ![TMDb API](https://img.shields.io/badge/API-TMDB-01B4E4?logo=themoviedatabase)
 ![Sentiment](https://img.shields.io/badge/sentiment-Naive%20Bayes%20%2B%20TFIDF-yellowgreen)
 ![Deployment](https://img.shields.io/badge/deployed%20on-render-blueviolet?logo=render)
